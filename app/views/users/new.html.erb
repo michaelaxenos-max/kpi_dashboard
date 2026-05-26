@@ -1,0 +1,45 @@
+<% content_for :title, "Add User" %>
+
+<div class="mb-6">
+  <%= link_to "← Users", users_path, class: "text-dim hover:text-ink text-sm" %>
+</div>
+
+<div class="max-w-lg">
+  <h1 class="text-2xl font-bold text-ink mb-6">Add User</h1>
+
+  <div class="bg-card border border-stroke rounded-xl p-6">
+    <%= form_with model: @user, url: users_path do |f| %>
+      <% if @user.errors.any? %>
+        <div class="mb-4 px-3 py-2 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm dark:bg-red-900/50 dark:border-red-700 dark:text-red-300">
+          <% @user.errors.full_messages.each do |msg| %>
+            <div><%= msg %></div>
+          <% end %>
+        </div>
+      <% end %>
+
+      <div class="space-y-4">
+        <div>
+          <%= f.label :name, "Name", class: "block text-sm font-medium text-dim mb-1" %>
+          <%= f.text_field :name, class: "w-full bg-elevated border border-stroke rounded-lg px-3 py-2 text-sm text-ink focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent" %>
+        </div>
+
+        <div>
+          <%= f.label :email, "Email", class: "block text-sm font-medium text-dim mb-1" %>
+          <%= f.email_field :email, class: "w-full bg-elevated border border-stroke rounded-lg px-3 py-2 text-sm text-ink focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent" %>
+        </div>
+
+        <div>
+          <%= f.label :password, "Password", class: "block text-sm font-medium text-dim mb-1" %>
+          <%= f.password_field :password, class: "w-full bg-elevated border border-stroke rounded-lg px-3 py-2 text-sm text-ink focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent" %>
+        </div>
+
+        <div>
+          <%= f.label :password_confirmation, "Confirm password", class: "block text-sm font-medium text-dim mb-1" %>
+          <%= f.password_field :password_confirmation, class: "w-full bg-elevated border border-stroke rounded-lg px-3 py-2 text-sm text-ink focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent" %>
+        </div>
+
+        <%= f.submit "Create user", class: "w-full bg-accent hover:bg-accent-hi text-white font-medium text-sm py-2 rounded-lg cursor-pointer transition-colors mt-2" %>
+      </div>
+    <% end %>
+  </div>
+</div>

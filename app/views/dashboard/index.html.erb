@@ -1,0 +1,177 @@
+<% content_for :title, "KPI Overview" %>
+
+<div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-6">
+  <div>
+    <h1 class="text-2xl font-bold text-ink">Team KPI Overview</h1>
+    <p class="text-sm text-dim mt-0.5">
+      <%= @start_date.strftime("%B %d") %> – <%= @end_date.strftime("%B %d, %Y") %>
+    </p>
+  </div>
+
+  <div class="flex flex-col sm:flex-row sm:flex-wrap items-start sm:items-center gap-2">
+    <%# Quick presets + nav arrows on one row %>
+    <div class="flex items-center gap-2">
+      <div class="flex rounded-lg overflow-hidden border border-stroke">
+        <%= link_to "Week", root_path(period: "week", date: Date.today.iso8601, team_id: params[:team_id]),
+              class: "px-4 py-2 text-sm font-medium #{@period == 'week' ? 'bg-accent text-white' : 'bg-card text-dim hover:text-ink'}" %>
+        <%= link_to "Month", root_path(period: "month", date: Date.today.iso8601, team_id: params[:team_id]),
+              class: "px-4 py-2 text-sm font-medium #{@period == 'month' ? 'bg-accent text-white' : 'bg-card text-dim hover:text-ink'}" %>
+      </div>
+
+      <% unless @period == "custom" %>
+        <% prev_date = @period == "week" ? @start_date - 7.days : @start_date - 1.month %>
+        <% next_date = @period == "week" ? @start_date + 7.days : @start_date + 1.month %>
+        <%= link_to "←", root_path(period: @period, date: prev_date.iso8601, team_id: params[:team_id]),
+              class: "px-3 py-2 bg-card border border-stroke rounded-lg text-dim hover:text-ink text-sm" %>
+        <%= link_to "→", root_path(period: @period, date: next_date.iso8601, team_id: params[:team_id]),
+              class: "px-3 py-2 bg-card border border-stroke rounded-lg text-dim hover:text-ink text-sm" %>
+      <% end %>
+    </div>
+
+    <%# Date range + team filter on second row %>
+    <div class="flex flex-wrap items-center gap-2">
+      <%# Custom date range form %>
+      <%= form_with url: root_path, method: :get, local: true, class: "flex items-center gap-1.5" do |f| %>
+        <%= f.hidden_field :team_id, value: params[:team_id] %>
+        <%= f.date_field :start_date, value: @start_date.iso8601,
+              class: "bg-card border border-stroke text-ink text-sm rounded-lg px-2 py-2 cursor-pointer w-36",
+              onchange: "this.form.submit()" %>
+        <span class="text-dim text-xs">to</span>
+        <%= f.date_field :end_date, value: @end_date.iso8601,
+              class: "bg-card border border-stroke text-ink text-sm rounded-lg px-2 py-2 cursor-pointer w-36",
+              onchange: "this.form.submit()" %>
+      <% end %>
+
+      <% if @teams.any? %>
+        <%= form_with url: root_path, method: :get, local: true do |f| %>
+          <%= f.hidden_field :period, value: @period %>
+          <%= f.hidden_field :date, value: @reference_date.iso8601 %>
+          <% if @period == "custom" %>
+            <%= f.hidden_field :start_date, value: @start_date.iso8601 %>
+            <%= f.hidden_field :end_date, value: @end_date.iso8601 %>
+          <% end %>
+          <%= f.select :team_id,
+                [["All Teams", ""]] + @teams.map { |t| [t.name, t.id] },
+                { selected: params[:team_id] },
+                class: "bg-card border border-stroke text-ink text-sm rounded-lg px-3 py-2",
+                onchange: "this.form.submit()" %>
+        <% end %>
+      <% end %>
+    </div>
+  </div>
+</div>
+
+<% @members = @members_by_team.values.flatten %>
+<% if @members.empty? %>
+  <div class="text-center py-20 text-faint">
+    <p class="text-lg">No team members yet.</p>
+    <p class="text-sm mt-2">Click "Sync Hubstaff" in the sidebar to import your team.</p>
+  </div>
+<% else %>
+
+<div class="bg-card border border-stroke rounded-xl overflow-x-auto">
+    <table class="w-full min-w-max">
+      <thead>
+        <tr class="border-b border-divider">
+          <th class="col-sticky bg-card w-10 px-2 py-3 md:hidden"></th>
+          <th class="md:hidden bg-card text-left py-3 pr-3 text-xs font-medium text-faint uppercase tracking-wider w-28">Member</th>
+          <th class="hidden md:table-cell text-left px-4 py-3 text-xs font-medium text-faint uppercase tracking-wider w-40 col-sticky bg-card">Member</th>
+          <% @days.each do |day| %>
+            <th class="px-2 py-3 text-center min-w-[72px]">
+              <div class="text-xs font-medium text-faint uppercase"><%= day.strftime("%a") %></div>
+              <div class="text-sm font-semibold <%= day == Date.today ? 'text-accent-on' : 'text-ink' %>">
+                <%= day.strftime("%-d") %>
+              </div>
+            </th>
+          <% end %>
+          <th class="px-4 py-3 text-center text-xs font-medium text-faint uppercase tracking-wider">
+            <%= @period == "week" ? "Week Avg" : "Month Avg" %>
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @members_by_team.each do |team, members| %>
+          <% next if members.empty? %>
+          <!-- Team header row -->
+          <tr class="bg-elevated border-y border-stroke">
+            <td class="col-sticky bg-elevated w-10 md:hidden"></td>
+            <td class="sticky left-10 z-[9] bg-elevated py-2 pl-2.5 pr-3 md:hidden">
+              <span class="text-xs font-semibold text-dim uppercase tracking-wider whitespace-nowrap"><%= team&.name || "No Team" %></span>
+            </td>
+            <td class="hidden md:table-cell px-4 py-2 col-sticky bg-elevated w-40">
+              <span class="text-xs font-semibold text-dim uppercase tracking-wider"><%= team&.name || "No Team" %></span>
+            </td>
+            <td colspan="<%= @days.size + 1 %>" class="bg-elevated"></td>
+          </tr>
+          <!-- Member rows -->
+          <% members.each do |member| %>
+            <tr class="hover:bg-elevated/50 transition-colors border-b border-divider">
+              <%# Mobile: sticky avatar column + non-sticky name column %>
+              <td class="col-sticky bg-card w-10 px-2 py-3 md:hidden">
+                <%= link_to team_member_path(member, back: request.fullpath) do %>
+                  <div class="w-7 h-7 rounded-full bg-accent flex items-center justify-center text-xs font-bold text-white">
+                    <%= member.name.split.map(&:first).first(2).join %>
+                  </div>
+                <% end %>
+              </td>
+              <td class="py-3 pr-3 md:hidden w-28 max-w-[7rem]">
+                <%= link_to member.name, team_member_path(member, back: request.fullpath),
+                      class: "text-sm font-medium text-dim hover:text-ink truncate block" %>
+              </td>
+              <%# Desktop: single sticky column with avatar + name %>
+              <td class="hidden md:table-cell px-4 py-3 col-sticky bg-card w-40">
+                <%= link_to team_member_path(member, back: request.fullpath), class: "flex items-center gap-2 group" do %>
+                  <div class="w-7 h-7 rounded-full bg-accent flex items-center justify-center text-xs font-bold text-white flex-shrink-0">
+                    <%= member.name.split.map(&:first).first(2).join %>
+                  </div>
+                  <span class="text-sm font-medium text-dim group-hover:text-ink truncate"><%= member.name %></span>
+                <% end %>
+              </td>
+
+              <% @days.each do |day| %>
+                <% pct   = @kpi_by_member_date[[member.id, day]] %>
+                <% hours = @hours_by_member_date[[member.id, day]] %>
+                <td class="px-1 py-2 text-center">
+                  <% if day > Date.today %>
+                    <div class="text-divider text-xs">—</div>
+                  <% elsif day < Date.today && pct.nil? && hours.to_f == 0 %>
+                    <div class="text-faint text-xs">off</div>
+                  <% else %>
+                    <% proj_count = @projects_by_member_date[[member.id, day]] %>
+                    <%= link_to team_member_path(member, period: "week", date: day.iso8601, back: request.fullpath, anchor: "day-#{day.iso8601}"),
+                          class: "inline-flex flex-col items-center gap-0.5 hover:opacity-75 transition-opacity" do %>
+                      <%= kpi_badge(pct) %>
+                      <% if hours.to_f > 0 %>
+                        <% hours_class = hours.to_f >= 8 ? "text-emerald-500 dark:text-emerald-400" : hours.to_f >= 7 ? "text-amber-500 dark:text-amber-400" : "text-faint" %>
+                        <span class="text-xs <%= hours_class %>"><%= fmt_hours(hours) %></span>
+                      <% end %>
+                      <% if proj_count.to_i > 0 %>
+                        <span class="text-xs font-semibold <%= project_count_color(proj_count) %>"><%= proj_count %>p</span>
+                      <% end %>
+                    <% end %>
+                  <% end %>
+                </td>
+              <% end %>
+
+              <td class="px-4 py-3 text-center">
+                <% period_kpis = @days.filter_map { |d| @kpi_by_member_date[[member.id, d]] } %>
+                <% avg = period_kpis.any? ? (period_kpis.sum / period_kpis.size).round(2) : nil %>
+                <%= kpi_badge(avg) %>
+              </td>
+            </tr>
+          <% end %>
+        <% end %>
+      </tbody>
+    </table>
+</div>
+
+<div class="mt-4 flex items-center gap-4 text-xs text-faint">
+  <span>KPI scale:</span>
+  <span class="px-2 py-0.5 rounded-full bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-300">< 60%</span>
+  <span class="px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-300">60–80%</span>
+  <span class="px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700 dark:bg-yellow-500/20 dark:text-yellow-300">80–100%</span>
+  <span class="px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-300">100–120%</span>
+  <span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 ring-1 ring-emerald-300 dark:bg-emerald-500/20 dark:text-emerald-300 dark:ring-emerald-500/40">120%+ ★ Bonus</span>
+</div>
+
+<% end %>

@@ -1,0 +1,51 @@
+<% content_for :title, "Sign in" %>
+
+<div class="min-h-screen bg-surface flex items-center justify-center px-4">
+  <div class="w-full max-w-sm">
+
+    <!-- Logo / title -->
+    <div class="text-center mb-8">
+      <div class="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-accent mb-4">
+        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+        </svg>
+      </div>
+      <h1 class="text-2xl font-bold text-ink">KPI Dashboard</h1>
+      <p class="text-sm text-dim mt-1">Sign in to your account</p>
+    </div>
+
+    <!-- Card -->
+    <div class="bg-card border border-stroke rounded-2xl p-8 shadow-sm">
+      <% if flash[:alert] %>
+        <div class="mb-5 px-3 py-2.5 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm dark:bg-red-900/50 dark:border-red-700 dark:text-red-300">
+          <%= flash[:alert] %>
+        </div>
+      <% end %>
+
+      <%= form_with url: login_path, method: :post do |f| %>
+        <div class="space-y-4">
+          <div>
+            <%= f.label :email, "Email", class: "block text-sm font-medium text-ink mb-1.5" %>
+            <%= f.email_field :email,
+                  autocomplete: "email",
+                  autofocus: true,
+                  placeholder: "you@example.com",
+                  class: "w-full bg-elevated border border-stroke rounded-xl px-4 py-2.5 text-sm text-ink placeholder-faint focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent transition-colors" %>
+          </div>
+
+          <div>
+            <%= f.label :password, "Password", class: "block text-sm font-medium text-ink mb-1.5" %>
+            <%= f.password_field :password,
+                  autocomplete: "current-password",
+                  placeholder: "••••••••",
+                  class: "w-full bg-elevated border border-stroke rounded-xl px-4 py-2.5 text-sm text-ink placeholder-faint focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent transition-colors" %>
+          </div>
+
+          <%= f.submit "Sign in",
+                class: "w-full bg-accent hover:bg-accent-hi text-white font-semibold text-sm py-2.5 rounded-xl cursor-pointer transition-colors mt-2" %>
+        </div>
+      <% end %>
+    </div>
+
+  </div>
+</div>

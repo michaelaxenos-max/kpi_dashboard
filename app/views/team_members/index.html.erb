@@ -1,0 +1,33 @@
+<% content_for :title, "Team Members" %>
+
+<div class="flex items-center justify-between mb-6">
+  <h1 class="text-2xl font-bold text-ink">Team Members</h1>
+  <p class="text-sm text-dim"><%= @team_members.size %> active members</p>
+</div>
+
+<% if @team_members.empty? %>
+  <div class="bg-card rounded-xl border border-stroke px-6 py-16 text-center text-dim text-sm">
+    No team members yet. Click "Sync Hubstaff" in the sidebar to import your team.
+  </div>
+<% else %>
+  <% @team_members.group_by { |m| m.team&.name || "No team" }.sort.each do |team_name, members| %>
+    <div class="mb-6">
+      <h2 class="text-xs font-semibold text-faint uppercase tracking-wider mb-3"><%= team_name %></h2>
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        <% members.each do |member| %>
+          <%= link_to team_member_path(member), class: "bg-card border border-stroke rounded-xl p-4 hover:border-accent hover:bg-elevated/50 transition-all group" do %>
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-full bg-accent flex items-center justify-center text-sm font-bold text-white flex-shrink-0">
+                <%= member.name.split.map(&:first).first(2).join %>
+              </div>
+              <div class="min-w-0">
+                <p class="text-sm font-medium text-ink group-hover:text-ink truncate"><%= member.name %></p>
+                <p class="text-xs text-faint truncate"><%= member.email %></p>
+              </div>
+            </div>
+          <% end %>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+<% end %>

@@ -1,0 +1,128 @@
+<% visible_tasks = group[:visible] %>
+<% all_tasks     = group[:all] %>
+<% total_hours   = all_tasks.sum { |t| t.hours_spent || 0 } %>
+<% multi_task    = all_tasks.size > 1 %>
+<% is_merged     = visible_tasks.size < all_tasks.size %>
+<% warn_funnel   = is_funnel_builder && multi_task %>
+<% frame_id      = "task_group_#{member.id}_#{all_tasks.first.date}_#{project.id}" %>
+
+<%# Combined project total accounting for multi-day tasks %>
+<% any_multi_day = all_tasks.any? { |t| multi_day_tasks[t.id] } %>
+<% project_combined_hours = all_tasks.sum { |t|
+     md = multi_day_tasks[t.id]
+     md ? md[:total_hours] : t.hours_spent.to_f
+   } %>
+<% project_has_continues = all_tasks.any? { |t|
+     md = multi_day_tasks[t.id]; md && !md[:is_final]
+   } %>
+
+<%= turbo_frame_tag frame_id do %>
+  <div data-controller="task-merge">
+    <!-- Project row -->
+    <div class="px-4 py-2.5 flex items-center justify-between bg-elevated/40">
+      <div class="flex items-center gap-2">
+        <span class="text-xs font-semibold text-dim uppercase tracking-wide"><%= project.name %></span>
+        <% if warn_funnel && !is_merged %>
+          <span class="text-xs text-orange-500 dark:text-orange-400 font-medium">⚠ multiple tasks</span>
+        <% end %>
+      </div>
+      <div class="flex items-center gap-3">
+        <% if any_multi_day %>
+          <span class="text-xs text-dim">
+            <%= fmt_hours(project_combined_hours) %> total
+            <% if project_has_continues %>
+              <span class="text-faint">(incl. other days)</span>
+            <% end %>
+          </span>
+        <% else %>
+          <span class="text-xs text-dim"><%= fmt_hours(total_hours) %> total</span>
+        <% end %>
+        <% if is_merged %>
+          <%= form_with url: unmerge_hubstaff_tasks_path, method: :post, class: "inline" do %>
+            <% all_tasks.each do |t| %>
+              <%= hidden_field_tag "task_ids[]", t.id %>
+            <% end %>
+            <button type="submit" class="text-xs px-2 py-1 rounded border border-stroke text-dim hover:text-ink cursor-pointer transition-colors">
+              Unmerge
+            </button>
+          <% end %>
+        <% end %>
+        <% if multi_task %>
+          <button data-action="click->task-merge#togglePicking"
+                  data-task-merge-target="toggleBtn"
+                  class="text-xs px-2 py-1 rounded bg-accent-wash text-accent-on hover:bg-stroke transition-colors">
+            <%= is_merged ? "Re-merge" : "Merge tasks" %>
+          </button>
+        <% end %>
+      </div>
+    </div>
+
+    <!-- Picking hint -->
+    <% if multi_task %>
+      <div data-task-merge-target="hint" class="hidden px-4 py-2 bg-accent-wash/40 border-b border-stroke flex items-center justify-between">
+        <span class="text-xs text-dim">Pick which task's KPI standard applies — all <strong><%= fmt_hours(project_combined_hours) %></strong> will count toward it.</span>
+        <button type="button" data-action="click->task-merge#togglePicking"
+                class="text-xs text-dim hover:text-ink">Cancel</button>
+      </div>
+    <% end %>
+
+    <!-- Task rows -->
+    <% all_tasks.each do |task| %>
+      <% absorbed  = task.merged_into_id.present? %>
+      <% md        = multi_day_tasks[task.id] %>
+      <% continues = md && !md[:is_final] %>
+      <% is_final  = md && md[:is_final] %>
+      <% display_kpi = if is_final
+                         KpiCalculator.task_kpi(task.task_type, md[:total_hours])
+                       elsif !md
+                         KpiCalculator.task_kpi(task.task_type, task.display_hours)
+                       end %>
+      <% show_hours = multi_task || md %>
+
+      <div class="px-4 py-2.5 pl-8 flex items-center justify-between border-t border-divider <%= absorbed ? 'opacity-40' : '' %>">
+        <div class="flex items-center gap-3">
+          <div class="w-1.5 h-1.5 rounded-full <%= task.task_type ? 'bg-accent-on' : 'bg-faint' %>"></div>
+          <div>
+            <p class="text-sm text-ink flex items-center gap-2">
+              <%= task.summary.presence || "Untitled task" %>
+              <% if absorbed %>
+                <span class="text-xs text-faint italic">absorbed</span>
+              <% elsif continues %>
+                <span class="text-xs text-blue-400">→ continues <%= md[:final_date].strftime("%b %-d") %></span>
+              <% elsif is_final && md[:day_count] > 1 %>
+                <span class="text-xs text-faint">started <%= md[:start_date].strftime("%b %-d") %></span>
+              <% end %>
+            </p>
+            <% if task.task_type %>
+              <p class="text-xs text-faint"><%= task.task_type.name %></p>
+            <% end %>
+            <% if task.merged_tasks.any? %>
+              <p class="text-xs text-faint">includes: <%= task.merged_tasks.map { |m| m.summary.presence || "Untitled" }.join(", ") %></p>
+            <% end %>
+          </div>
+        </div>
+        <div class="flex items-center gap-3">
+          <% if show_hours && !absorbed %>
+            <span class="text-xs text-dim"><%= fmt_hours(task.hours_spent.to_f) %></span>
+          <% end %>
+          <% unless absorbed || continues %>
+            <%= kpi_badge(display_kpi) %>
+          <% end %>
+          <% if multi_task %>
+            <%= form_with url: merge_hubstaff_tasks_path, method: :post,
+                  data: { task_merge_target: "mergeForm" }, class: "hidden" do %>
+              <% all_tasks.each do |t| %>
+                <%= hidden_field_tag "task_ids[]", t.id %>
+              <% end %>
+              <%= hidden_field_tag "keep_task_id", task.id %>
+              <button type="submit"
+                      class="text-xs px-4 py-1.5 rounded-lg bg-accent text-white hover:bg-accent-hi transition-colors whitespace-nowrap">
+                Use this KPI
+              </button>
+            <% end %>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+  </div>
+<% end %>

@@ -1,0 +1,54 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Light-mode defaults — @theme (no inline) creates CSS variables so utilities
+   use var(--color-*) and the .dark overrides below take effect at runtime */
+@theme {
+  --color-surface:     #FAF9F5;
+  --color-card:        #FFFFFF;
+  --color-sidebar:     #F0EBE3;
+  --color-elevated:    #F5F0EA;
+  --color-stroke:      #E5DDD4;
+  --color-divider:     #EDE8E2;
+  --color-ink:         #1C1917;
+  --color-dim:         #78716C;
+  --color-faint:       #A8A29E;
+  --color-accent:      #D97757;
+  --color-accent-hi:   #C4674A;
+  --color-accent-wash: #F5E6DF;
+  --color-accent-on:   #D97757;
+}
+
+/* Date inputs follow the active color scheme so the browser's native calendar picker uses dark mode */
+input[type="date"] {
+  color-scheme: light;
+}
+.dark input[type="date"] {
+  color-scheme: dark;
+}
+
+/* Sticky table column — freezes the member name column on horizontal scroll */
+.col-sticky {
+  position: sticky;
+  left: 0;
+  z-index: 10;
+  border-right: 1px solid var(--color-stroke);
+}
+
+/* Dark-mode overrides — unlayered author CSS wins over Tailwind's @layer theme */
+.dark {
+  --color-surface:     #030712;
+  --color-card:        #111827;
+  --color-sidebar:     #111827;
+  --color-elevated:    #1F2937;
+  --color-stroke:      #1F2937;
+  --color-divider:     #374151;
+  --color-ink:         #F9FAFB;
+  --color-dim:         #9CA3AF;
+  --color-faint:       #6B7280;
+  --color-accent:      #4F46E5;
+  --color-accent-hi:   #4338CA;
+  --color-accent-wash: #1E1B4B;
+  --color-accent-on:   #818CF8;
+}

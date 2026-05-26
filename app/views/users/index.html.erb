@@ -1,0 +1,48 @@
+<% content_for :title, "Users" %>
+
+<div class="flex items-center justify-between mb-6">
+  <h1 class="text-2xl font-bold text-ink">Users</h1>
+  <%= link_to "Add user", new_user_path, class: "bg-accent hover:bg-accent-hi text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors" %>
+</div>
+
+<div class="bg-card border border-stroke rounded-xl overflow-hidden">
+  <% if @users.any? %>
+    <table class="w-full">
+      <thead>
+        <tr class="border-b border-divider">
+          <th class="text-left px-4 py-3 text-xs font-medium text-faint uppercase tracking-wider">Name</th>
+          <th class="text-left px-4 py-3 text-xs font-medium text-faint uppercase tracking-wider">Email</th>
+          <th class="px-4 py-3"></th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @users.each do |user| %>
+          <tr class="border-b border-divider last:border-0">
+            <td class="px-4 py-3 text-sm text-ink">
+              <%= user.name.presence || "—" %>
+              <% if user == current_user %>
+                <span class="text-xs text-faint ml-1">(you)</span>
+              <% end %>
+            </td>
+            <td class="px-4 py-3 text-sm text-dim"><%= user.email %></td>
+            <td class="px-4 py-3 text-right">
+              <div class="flex items-center justify-end gap-3">
+                <% if current_user.admin? && user != current_user %>
+                  <%= link_to "Reset password", edit_user_path(user),
+                        class: "text-xs text-dim hover:text-ink transition-colors" %>
+                <% end %>
+                <% unless user == current_user %>
+                  <%= button_to "Remove", user_path(user), method: :delete,
+                        data: { turbo_confirm: "Remove #{user.email}?" },
+                        class: "text-xs text-red-500 hover:text-red-700 cursor-pointer transition-colors" %>
+                <% end %>
+              </div>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  <% else %>
+    <p class="px-4 py-8 text-center text-faint text-sm">No users yet.</p>
+  <% end %>
+</div>

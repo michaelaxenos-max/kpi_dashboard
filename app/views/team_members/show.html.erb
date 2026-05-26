@@ -1,0 +1,125 @@
+<% content_for :title, @member.name %>
+
+<!-- Header -->
+<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+  <div class="flex items-center gap-3">
+    <%= link_to "← Back", params[:back].presence || root_path, class: "text-dim hover:text-ink text-sm flex-shrink-0" %>
+    <div class="w-10 h-10 rounded-full bg-accent flex items-center justify-center text-sm font-bold text-white flex-shrink-0">
+      <%= @member.name.split.map(&:first).first(2).join %>
+    </div>
+    <div class="min-w-0">
+      <h1 class="text-xl md:text-2xl font-bold text-ink truncate"><%= @member.name %></h1>
+      <p class="text-sm text-dim"><%= @member.role&.humanize %> · <%= @member.team&.name %></p>
+    </div>
+  </div>
+
+  <div class="flex items-center gap-2 flex-shrink-0">
+    <div class="flex rounded-lg overflow-hidden border border-stroke">
+      <%= link_to "Week", team_member_path(@member, period: "week", date: @reference_date.iso8601),
+            class: "px-4 py-2 text-sm font-medium #{@period == 'week' ? 'bg-accent text-white' : 'bg-elevated text-dim hover:text-ink'}" %>
+      <%= link_to "Month", team_member_path(@member, period: "month", date: @reference_date.iso8601),
+            class: "px-4 py-2 text-sm font-medium #{@period == 'month' ? 'bg-accent text-white' : 'bg-elevated text-dim hover:text-ink'}" %>
+    </div>
+
+    <% prev_date = @period == "week" ? @start_date - 7.days : @start_date - 1.month %>
+    <% next_date = @period == "week" ? @start_date + 7.days : @start_date + 1.month %>
+    <%= link_to "←", team_member_path(@member, period: @period, date: prev_date.iso8601),
+          class: "px-3 py-2 bg-elevated border border-stroke rounded-lg text-dim hover:text-ink text-sm" %>
+    <%= link_to "→", team_member_path(@member, period: @period, date: next_date.iso8601),
+          class: "px-3 py-2 bg-elevated border border-stroke rounded-lg text-dim hover:text-ink text-sm" %>
+  </div>
+</div>
+
+<!-- KPI summary cards -->
+<div class="grid grid-cols-3 gap-4 mb-6">
+  <div class="bg-card rounded-xl border border-stroke p-4">
+    <p class="text-xs text-dim uppercase tracking-wider mb-1">Weekly KPI</p>
+    <p class="text-3xl font-bold <%= @weekly_kpi && @weekly_kpi >= 120 ? 'text-emerald-500 dark:text-emerald-400' : 'text-ink' %>">
+      <%= @weekly_kpi ? "#{@weekly_kpi.round}%" : "—" %>
+    </p>
+    <% if @weekly_kpi && @weekly_kpi >= 120 %>
+      <p class="text-xs text-emerald-600 dark:text-emerald-400 mt-1">★ Bonus eligible</p>
+    <% end %>
+  </div>
+  <div class="bg-card rounded-xl border border-stroke p-4">
+    <p class="text-xs text-dim uppercase tracking-wider mb-1">Monthly KPI</p>
+    <p class="text-3xl font-bold <%= @monthly_kpi && @monthly_kpi >= 120 ? 'text-emerald-500 dark:text-emerald-400' : 'text-ink' %>">
+      <%= @monthly_kpi ? "#{@monthly_kpi.round}%" : "—" %>
+    </p>
+    <% if @monthly_kpi && @monthly_kpi >= 120 %>
+      <p class="text-xs text-emerald-600 dark:text-emerald-400 mt-1">★ Bonus eligible</p>
+    <% end %>
+  </div>
+  <div class="bg-card rounded-xl border border-stroke p-4">
+    <p class="text-xs text-dim uppercase tracking-wider mb-1">Daily Target</p>
+    <p class="text-3xl font-bold text-ink"><%= @member.daily_hours_target %>h</p>
+    <p class="text-xs text-faint mt-1">per working day</p>
+  </div>
+</div>
+
+<!-- Daily breakdown -->
+<div class="space-y-3">
+  <% @days.reject { |d| d.on_weekend? && (@tasks_by_date[d] || {}).empty? && @summaries[d].nil? }.each do |day| %>
+    <% summary = @summaries[day] %>
+    <% projects_tasks = @tasks_by_date[day] || {} %>
+    <% pct = @kpi_by_date[day] %>
+
+    <div id="day-<%= day.iso8601 %>" class="bg-card rounded-xl border border-stroke overflow-hidden">
+      <!-- Day header -->
+      <div class="flex items-center justify-between px-4 py-3 border-b border-stroke">
+        <div class="flex items-center gap-3">
+          <span class="text-sm font-semibold <%= day == Date.today ? 'text-accent-on' : 'text-ink' %>">
+            <%= day.strftime("%A, %B %-d") %>
+          </span>
+          <%= kpi_badge(pct) %>
+        </div>
+        <div class="flex items-center gap-4 text-sm text-dim">
+          <% if summary&.total_hours&.positive? %>
+            <span><%= fmt_hours(summary.total_hours) %> tracked</span>
+          <% end %>
+          <% if summary&.tasks_completed&.positive? %>
+            <span><%= summary.tasks_completed %> task<%= summary.tasks_completed == 1 ? "" : "s" %></span>
+          <% end %>
+        </div>
+      </div>
+
+      <% if projects_tasks.any? %>
+        <div class="divide-y divide-divider">
+          <% projects_tasks.each do |project, group| %>
+            <%= render "team_members/task_group",
+                  member: @member,
+                  project: project,
+                  group: group,
+                  is_funnel_builder: @is_funnel_builder,
+                  multi_day_tasks: @multi_day_tasks %>
+          <% end %>
+          <% @untracked_by_date[day]&.each do |entry| %>
+            <div class="px-4 py-2.5 flex items-center justify-between bg-elevated/20 opacity-50">
+              <div class="flex items-center gap-2">
+                <div class="w-1.5 h-1.5 rounded-full bg-faint"></div>
+                <span class="text-xs font-semibold text-dim uppercase tracking-wide"><%= entry[:project]&.name || "Unknown" %></span>
+                <span class="text-xs text-faint italic">no KPI tracked</span>
+              </div>
+              <span class="text-xs text-faint"><%= fmt_hours(entry[:hours]) %></span>
+            </div>
+          <% end %>
+        </div>
+      <% elsif @untracked_by_date[day]&.any? %>
+        <div class="divide-y divide-divider">
+          <% @untracked_by_date[day].each do |entry| %>
+            <div class="px-4 py-2.5 flex items-center justify-between bg-elevated/20 opacity-50">
+              <div class="flex items-center gap-2">
+                <div class="w-1.5 h-1.5 rounded-full bg-faint"></div>
+                <span class="text-xs font-semibold text-dim uppercase tracking-wide"><%= entry[:project]&.name || "Unknown" %></span>
+                <span class="text-xs text-faint italic">no KPI tracked</span>
+              </div>
+              <span class="text-xs text-faint"><%= fmt_hours(entry[:hours]) %></span>
+            </div>
+          <% end %>
+        </div>
+      <% elsif day <= Date.today %>
+        <p class="px-4 py-3 text-sm text-faint">No tasks logged</p>
+      <% end %>
+    </div>
+  <% end %>
+</div>

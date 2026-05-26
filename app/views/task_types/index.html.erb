@@ -1,0 +1,104 @@
+<% content_for :title, "KPI Settings" %>
+
+<% grouped = @task_types.group_by { |tt| tt.team&.name || "No team" } %>
+<% team_names = grouped.keys.sort %>
+
+<div class="flex items-center justify-between mb-6">
+  <div>
+    <h1 class="text-2xl font-bold text-ink">KPI Settings</h1>
+    <p class="text-sm text-dim mt-0.5">Standard hours per task type — KPI = standard ÷ actual × 100</p>
+  </div>
+  <div class="flex items-center gap-3">
+    <%= button_to sync_task_types_from_syncer_path, method: :post,
+          class: "flex items-center gap-2 bg-elevated hover:bg-stroke text-ink text-sm font-medium px-4 py-2 rounded-lg transition-colors cursor-pointer" do %>
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+      Sync from Hubstaff Syncer
+    <% end %>
+  </div>
+</div>
+
+<% if @task_types.empty? %>
+  <div class="bg-card rounded-xl border border-stroke px-6 py-16 text-center text-dim text-sm">
+    No task types yet. Click "Sync from Hubstaff Syncer" to import.
+  </div>
+<% else %>
+
+<div data-controller="team-tabs" data-team-tabs-active-value="all">
+
+  <!-- Tabs -->
+  <div class="flex items-center gap-1 mb-5 flex-wrap">
+    <button data-team="all"
+            data-team-tabs-target="tab"
+            data-action="click->team-tabs#switch"
+            class="px-4 py-2 text-sm font-medium rounded-lg bg-accent text-white transition-colors">
+      All teams
+      <span class="ml-1.5 text-xs opacity-70"><%= @task_types.size %></span>
+    </button>
+    <% team_names.each do |team_name| %>
+      <button data-team="<%= team_name %>"
+              data-team-tabs-target="tab"
+              data-action="click->team-tabs#switch"
+              class="px-4 py-2 text-sm font-medium rounded-lg text-dim hover:text-ink hover:bg-elevated transition-colors">
+        <%= team_name %>
+        <span class="ml-1.5 text-xs opacity-60"><%= grouped[team_name].size %></span>
+      </button>
+    <% end %>
+  </div>
+
+  <!-- Per-team tables -->
+  <div class="space-y-4">
+    <% team_names.each do |team_name| %>
+      <div data-team-tabs-target="section" data-team="<%= team_name %>"
+           class="bg-card rounded-xl border border-stroke overflow-hidden">
+        <!-- Team header -->
+        <div class="px-4 py-3 border-b border-stroke bg-elevated/50">
+          <span class="text-xs font-semibold text-dim uppercase tracking-wider"><%= team_name %></span>
+          <span class="ml-2 text-xs text-faint"><%= grouped[team_name].size %> task<%= grouped[team_name].size == 1 ? "" : "s" %></span>
+        </div>
+        <table class="w-full">
+          <colgroup>
+            <col style="width:40%">
+            <col style="width:18%">
+            <col style="width:30%">
+            <col style="width:12%">
+          </colgroup>
+          <thead>
+            <tr class="border-b border-stroke">
+              <th class="text-left px-4 py-2.5 text-xs font-medium text-faint uppercase tracking-wider">Task</th>
+              <th class="text-left px-4 py-2.5 text-xs font-medium text-faint uppercase tracking-wider">Standard time</th>
+              <th class="text-left px-4 py-2.5 text-xs font-medium text-faint uppercase tracking-wider">KPI formula</th>
+              <th class="px-4 py-2.5"></th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-divider">
+            <% grouped[team_name].sort_by(&:name).each do |tt| %>
+              <tr class="hover:bg-elevated/50 transition-colors">
+                <td class="px-4 py-3 text-sm font-medium text-ink">
+                  <div class="flex items-center gap-2">
+                    <%= tt.name %>
+                    <% if tt.synced? %>
+                      <span class="text-xs text-accent-on bg-accent-wash border border-accent-wash rounded px-1.5 py-0.5">Hubstaff</span>
+                    <% end %>
+                  </div>
+                </td>
+                <td class="px-4 py-3 text-sm text-ink">
+                  <span class="font-medium"><%= tt.standard_hours %>h</span>
+                  <span class="text-faint text-xs ml-1">/ <%= (tt.standard_hours * 60).round %>min</span>
+                </td>
+                <td class="px-4 py-3 text-xs text-faint">
+                  <%= tt.standard_hours %>h ÷ actual × 100
+                </td>
+                <td class="px-4 py-3 text-right">
+                  <%= link_to "Edit hours", edit_task_type_path(tt),
+                        class: "text-xs text-accent-on hover:opacity-75 font-medium" %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    <% end %>
+  </div>
+
+</div>
+<% end %>

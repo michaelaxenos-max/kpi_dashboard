@@ -1,0 +1,81 @@
+<div class="bg-card rounded-xl border border-stroke p-6 max-w-lg">
+  <%= form_with model: task_type, local: true do |f| %>
+    <% if task_type.errors.any? %>
+      <div class="mb-4 p-3 bg-red-100 border border-red-300 rounded-lg text-red-700 text-sm dark:bg-red-900/50 dark:border-red-700 dark:text-red-300">
+        <% task_type.errors.full_messages.each do |msg| %>
+          <p><%= msg %></p>
+        <% end %>
+      </div>
+    <% end %>
+
+    <div class="space-y-5">
+
+      <!-- Name -->
+      <div>
+        <label class="block text-sm font-medium text-dim mb-1">Task Name</label>
+        <% if task_type.persisted? %>
+          <div class="flex items-center gap-2">
+            <p class="text-sm text-ink bg-elevated/50 border border-stroke/50 rounded-lg px-3 py-2 flex-1"><%= task_type.name %></p>
+            <% if task_type.synced? %>
+              <span class="text-xs text-accent-on bg-accent-wash border border-accent-wash rounded-md px-2 py-1 whitespace-nowrap">Hubstaff</span>
+            <% end %>
+          </div>
+        <% else %>
+          <%= f.text_field :name, placeholder: "e.g. Advertorial, Sales Page",
+                class: "w-full bg-elevated border border-stroke text-ink rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-accent focus:border-accent outline-none" %>
+        <% end %>
+      </div>
+
+      <!-- Team -->
+      <div>
+        <label class="block text-sm font-medium text-dim mb-1">Team</label>
+        <% if task_type.persisted? %>
+          <p class="text-sm text-ink bg-elevated/50 border border-stroke/50 rounded-lg px-3 py-2"><%= task_type.team&.name || "All teams" %></p>
+        <% else %>
+          <%= f.select :team_id, [["All teams", nil]] + @teams.map { |t| [t.name, t.id] },
+                { selected: task_type.team_id },
+                class: "w-full bg-elevated border border-stroke text-ink rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-accent focus:border-accent outline-none" %>
+        <% end %>
+      </div>
+
+      <!-- Standard hours with h / min toggle -->
+      <div data-controller="kpi-input">
+        <div class="flex items-center justify-between mb-1">
+          <label class="text-sm font-medium text-dim">Standard Time to Complete</label>
+          <div class="flex items-center gap-1 bg-elevated rounded-lg p-1">
+            <button type="button"
+                    data-kpi-input-target="btnHours"
+                    data-action="click->kpi-input#switchHours"
+                    class="px-3 py-1.5 text-sm font-medium rounded-md bg-accent text-white">
+              h
+            </button>
+            <button type="button"
+                    data-kpi-input-target="btnMinutes"
+                    data-action="click->kpi-input#switchMinutes"
+                    class="px-3 py-1.5 text-sm font-medium rounded-md text-dim hover:text-ink">
+              min
+            </button>
+          </div>
+        </div>
+
+        <input type="number"
+               data-kpi-input-target="visible"
+               step="0.5"
+               min="0"
+               class="w-full bg-elevated border border-stroke text-ink rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-accent focus:border-accent outline-none" />
+
+        <%= f.hidden_field :standard_hours, data: { "kpi-input-target": "hidden" }, value: task_type.standard_hours %>
+
+        <p class="text-xs text-faint mt-1" data-kpi-input-target="hint">e.g. 3.5 for 3 hours 30 min</p>
+        <p class="text-xs text-faint mt-0.5">KPI = standard ÷ actual × 100 — can exceed 100% (120%+ earns bonus)</p>
+      </div>
+
+    </div>
+
+    <div class="mt-6 flex gap-3">
+      <%= f.submit task_type.persisted? ? "Save" : "Create",
+            class: "bg-accent hover:bg-accent-hi text-white text-sm font-medium px-4 py-2 rounded-lg cursor-pointer transition-colors" %>
+      <%= link_to "Cancel", task_types_path, class: "text-sm text-dim hover:text-ink px-4 py-2" %>
+    </div>
+  <% end %>
+</div>
