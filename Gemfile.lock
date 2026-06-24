@@ -1,7 +1,5 @@
-GIT
-  remote: https://github.com/garciajordy/corepulse.git
-  revision: 113eb0e9ca0fad1aafdf89d5b6794dfc7755f412
-  branch: main
+PATH
+  remote: vendor/corepulse
   specs:
     corepulse (0.1.0)
       faraday (>= 1.0)

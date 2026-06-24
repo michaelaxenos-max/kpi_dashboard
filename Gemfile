@@ -20,7 +20,7 @@ gem "tailwindcss-rails"
 gem "jbuilder"
 gem "faraday"
 gem "dotenv-rails"
-gem "corepulse", github: "garciajordy/corepulse", branch: "main"
+gem "corepulse", path: "vendor/corepulse"
 
 # Use Active Model has_secure_password
 gem "bcrypt", "~> 3.1.7"
