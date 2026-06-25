@@ -14,7 +14,7 @@ module CorePulse
       @hubstaff_org_id        = ENV["HUBSTAFF_ORG_ID"]
       @syncer_url             = ENV["HUBSTAFF_SYNCER_URL"]
       @syncer_api_key         = ENV["HUBSTAFF_SYNCER_API_KEY"]
-      @syncer_path            = ENV.fetch("HUBSTAFF_SYNCER_PATH", "task_types")
+      @syncer_path            = ENV.fetch("HUBSTAFF_SYNCER_PATH", "api/task_templates")
     end
   end
 
